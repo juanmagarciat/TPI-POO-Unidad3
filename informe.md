@@ -90,12 +90,59 @@ es una restricción sobre los datos de construcción (todos los lados con la
 misma medida), y por eso se resuelve mejor en una función que arma el objeto
 correcto, no en una clase que hereda para "encajar" en una lista.
 
-**Falla temprana verificada:** como `Poligono` es una `ABC` con
+
+**Falla temprana verificada:** como `Poligono` es una `ABC` con `area()` y
 `lados_esperados()` como `@abstractmethod`, intentar instanciarla
-directamente (`Poligono("x", "y", [...])`) lanza un `TypeError` al momento
-de construir el objeto, no al usarlo. Esto se demuestra en `main.py`.
+directamente (`Poligono("x", "y", [...])`) lanza, en el momento de
+construir el objeto, el siguiente error:
+
+> `TypeError: Can't instantiate abstract class Poligono without an implementation for abstract methods 'area', 'lados_esperados'`
+
+No se rompe al usar el objeto, sino al intentar crearlo. Esto se demuestra
+en `main.py`.
 
 **Alcance de la fábrica:** `FactoriaPoligonoRegular` solo mapea 3, 4, 5 y 6
 lados (las subclases concretas que existen en el dominio). Pedir un polígono
 regular con otra cantidad de lados lanza un `ValueError` explícito — no es
 una falla, sino el límite consciente del catálogo de figuras implementado.
+
+## 5. Parte 4 — ABC vs. Protocol
+
+**Por qué una ABC no hubiera servido para PlanoCAD:** una ABC (`abc.ABC`)
+exige **herencia explícita**: para que `PlanoCAD` cumpliera el contrato
+`Exportable` como ABC, tendría que declarar `class PlanoCAD(Exportable)`
+en su propia definición. Pero `PlanoCAD` está en `libreria_externa.py`,
+un archivo de un tercero que **no se puede modificar**. Como no se puede
+editar esa clase, jamás podría heredar de una ABC nuestra, aunque ya tenga
+el método `exportar() -> str` implementado. Con `typing.Protocol` el
+cumplimiento es **estructural**: no importa de dónde venga la clase ni si
+conoce el contrato — alcanza con que tenga el método con esa firma. Por eso
+`isinstance(plano, Exportable)` da `True` sin que `PlanoCAD` sepa que
+`Exportable` existe, algo imposible de lograr con una ABC pura sin tocar
+el archivo externo.
+
+**Pregunta que cierra la unidad — ¿lo decide el lenguaje o el dominio?**
+Depende del contrato en cuestión, y por eso conviene compararlo con la
+decisión de la Parte 3:
+
+- Para **`Poligono`** (Parte 3), la elección de `ABC` la impone el
+  **dominio**: queremos forzar que toda figura poligonal declare cuántos
+  lados espera (`lados_esperados()`), porque esa regla es parte de lo que
+  significa "ser un polígono" en este sistema. Acá sí tiene sentido que
+  el compilador (Python, en este caso, en tiempo de instanciación) impida
+  crear un objeto que viole esa regla del dominio.
+
+- Para **`Exportable`/`PlanoCAD`** (Parte 4), la elección de `Protocol` la
+  impone una **restricción del lenguaje/entorno**: no se puede modificar
+  una clase de terceros para que herede de algo. No es que el dominio
+  prefiera duck typing por sobre herencia — es que la herencia explícita
+  es, directamente, inviable en ese caso.
+
+**Conclusión:** no existe una regla única ("ABC siempre" o "Protocol
+siempre"). La unidad se cierra entendiendo que **el dominio decide cuándo
+una regla debe forzarse con herencia** (como en `Poligono`), y **el
+lenguaje/la situación técnica decide cuándo la herencia no es una opción**
+y hay que recurrir a un contrato estructural (como con `PlanoCAD`). Ambas
+decisiones — la de la Parte 3 y la de la Parte 4 — se justifican con el
+mismo criterio: usar herencia solo cuando el dominio la necesita, y
+duck typing/contratos estructurales cuando alcanza con el comportamiento.
