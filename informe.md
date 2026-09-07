@@ -146,3 +146,41 @@ y hay que recurrir a un contrato estructural (como con `PlanoCAD`). Ambas
 decisiones — la de la Parte 3 y la de la Parte 4 — se justifican con el
 mismo criterio: usar herencia solo cuando el dominio la necesita, y
 duck typing/contratos estructurales cuando alcanza con el comportamiento.
+
+
+## 6. Tabla de equivalencias Java ↔ Python (sobre mi propio código)
+
+| Elemento en Java | Cómo quedó en mi código Python | ¿Traducción directa o rediseño? | Por qué |
+|:---|:---|:---|:---|
+| Getters/Setters (`getNombre()`, `getColor()`) | Atributos expuestos como `@property` en `Figura` y `Poligono` | Rediseño | Python no necesita un método para leer un atributo; `@property` solo se usa donde hay lógica real (validación en `Lado.longitud`), no como ceremonia preventiva. |
+| Modificador `private` | Prefijo `_` (`_nombre`, `_lados`, `_etiqueta`) | Rediseño | Python no tiene protección real de acceso; el guion bajo es un acuerdo entre programadores ("no lo toques desde afuera"), no una barrera del compilador. |
+| `List<Poligono>` como tipo común para guardar subtipos | Listas dinámicas (`List[Poligono]`, `self._poligonos`) sin necesidad de un ancestro artificial | Rediseño | El tipado estático de Java exige un tipo declarado para la colección; en Python el duck typing permite mezclar objetos por comportamiento, sin forzar una jerarquía (por eso se eliminó la herencia de `PoligonoRegular`). |
+| Sobrecarga de constructores (`Triangulo(String, String)`, `Triangulo(List<Lado>)`, etc.) | Un único `__init__` con parámetros opcionales (`lados: Optional[List[Lado]] = None`) | Rediseño | Python no soporta sobrecarga de métodos por firma; se resuelve con valores por defecto o `Optional`, evitando las ramas `isinstance` artesanales del código original. |
+| Interfaz (`interface Exportable { String exportar(); }`) | `class Exportable(Protocol)` con `exportar() -> str` | Rediseño | Una interfaz Java exige `implements` explícito. `Protocol` logra el mismo contrato sin que la clase lo declare, indispensable para que `PlanoCAD` (código de terceros) lo cumpla. |
+| Clase abstracta con método abstracto (`abstract class Poligono { abstract int ladosEsperados(); }`) | `class Poligono(ABC)` con `@abstractmethod` en `lados_esperados()` | Traducción directa | El concepto de clase abstracta con métodos obligatorios existe igual en Python vía `abc.ABC`; acá sí el dominio exige forzar la regla en tiempo de construcción. |
+| Atributo `static` compartido (`static List<Poligono> catalogo`) | Eliminado por completo | Rediseño | Un atributo de clase mutable en Python se comparte igual que un `static` de Java, pero acá generaba estado global oculto; se descartó en vez de traducirse. |
+| `toString()` | `__repr__` en `Poligono` | Traducción directa | Ambos cumplen el mismo rol (representación legible del objeto), Python solo cambia el nombre del método especial. |
+
+
+## 7. Cierre: qué cambió y qué se mantuvo igual
+
+**Lo que cambió al pasar de Java a Python** fue, sobre todo, **el criterio para
+usar herencia**. En el código de partida, `PoligonoRegular` heredaba de
+`Poligono` solo para resolver un problema que en Python no existe (tener un
+tipo común para una colección). También cambió la forma de proteger el
+estado interno: en vez de getters/setters ceremoniales, se usó `@property`
+únicamente donde había lógica real, y copia defensiva explícita para evitar
+aliasing entre objetos. Y cambió el mecanismo de contrato: donde Java
+hubiera usado una interfaz con `implements` obligatorio, acá se usó
+`typing.Protocol`, porque había una restricción real (no poder modificar
+`libreria_externa.py`) que una interfaz clásica no podría resolver.
+
+**Lo que se mantuvo idéntico** fue el **diseño conceptual del dominio**: la
+relación "un polígono tiene lados", "un taller agrupa polígonos sin ser
+dueño de ellos", "un lado puede tener una etiqueta opcional" no cambiaron en
+absoluto — son decisiones de modelado que no dependen del lenguaje. Lo que
+se demostró en este TP es que la **sintaxis y las herramientas para expresar
+esas relaciones sí cambian con el lenguaje**, pero el diseño de qué relación
+corresponde a cada par de clases (composición, agregación, asociación,
+herencia) es un problema de dominio, independiente de si el lenguaje es
+Java o Python.
