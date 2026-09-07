@@ -59,3 +59,43 @@ si el código, en ese mismo método, **instancia el objeto con `NombreClase(...)
 (composición) o **lo recibe ya armado desde afuera** (agregación/asociación);
 y dentro de este segundo grupo, si la relación es obligatoria y plural
 (agregación) u opcional y singular (asociación).
+
+
+## 4. Parte 3 — Decisión sobre PoligonoRegular
+
+**Problema en el código de partida:** `PoligonoRegular` heredaba de `Poligono`
+únicamente para poder guardarse en la misma lista/colección que `Triangulo` y
+`Cuadrado`, y ser recorrida con un tipo común. Esa es una necesidad propia de
+un compilador con tipado estático como Java (`List<Poligono>` exige que todo
+lo que entre ahí sea, formalmente, un `Poligono`). En Python las listas son
+dinámicas y el duck typing permite mezclar cualquier objeto que cumpla el
+comportamiento esperado (`perimetro()`, `lados_esperados()`, `area()`), sin
+que exista un tipo declarado en la colección que lo exija.
+
+**Decisión tomada:** se descartó la herencia y se reemplazó por una
+**Factory Method** (`FactoriaPoligonoRegular.crear(nombre, color, medida,
+cantidad)`), que no crea un tipo nuevo: internamente decide, según la
+`cantidad` de lados, cuál subclase concreta corresponde (`Triangulo`,
+`Cuadrado`, `Pentagono` o `Hexagono`) y devuelve una instancia de esa clase
+ya existente.
+
+**Justificación con el criterio de la unidad:** el dominio no afirma que "un
+polígono regular ES-UN tipo aparte de figura" — afirma que "un polígono
+regular ES uno de estos polígonos concretos, con todos sus lados iguales".
+La jerarquía que ya existía (`Triangulo`, `Cuadrado`, `Pentagono`,
+`Hexagono`), cada una con su propio `area()`, ya expresa ese "ES-UN" de forma
+correcta. Agregar una clase más solo para representar "regularidad" hubiera
+sido ceremonia sin necesidad real de dominio: la regularidad no es un tipo,
+es una restricción sobre los datos de construcción (todos los lados con la
+misma medida), y por eso se resuelve mejor en una función que arma el objeto
+correcto, no en una clase que hereda para "encajar" en una lista.
+
+**Falla temprana verificada:** como `Poligono` es una `ABC` con
+`lados_esperados()` como `@abstractmethod`, intentar instanciarla
+directamente (`Poligono("x", "y", [...])`) lanza un `TypeError` al momento
+de construir el objeto, no al usarlo. Esto se demuestra en `main.py`.
+
+**Alcance de la fábrica:** `FactoriaPoligonoRegular` solo mapea 3, 4, 5 y 6
+lados (las subclases concretas que existen en el dominio). Pedir un polígono
+regular con otra cantidad de lados lanza un `ValueError` explícito — no es
+una falla, sino el límite consciente del catálogo de figuras implementado.
