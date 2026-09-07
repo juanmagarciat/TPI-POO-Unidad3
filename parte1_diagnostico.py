@@ -1,4 +1,4 @@
-"""parte1_diagnostico_Original.py — Dominio Figura / Polígono / Lado refactorizado a Python idiomático."""
+"""parte1_diagnostico.py — Dominio Figura / Polígono / Lado refactorizado a Python idiomático."""
 
 from typing import List, Optional, Tuple
 
