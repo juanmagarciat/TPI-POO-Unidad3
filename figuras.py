@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Protocol, runtime_checkable
 import math
+from libreria_externa import PlanoCAD
 
 
 # ==============================================================================
@@ -235,3 +236,19 @@ class Taller:
 def exportar_todo(items: List[Exportable]) -> List[str]:
     """Exporta cualquier objeto que cumpla estructuralmente con el Protocol Exportable."""
     return [item.exportar() for item in items]
+
+# ==============================================================================
+# Verificación: PlanoCAD (librería externa) cumple Exportable SIN heredar
+# ==============================================================================
+if __name__ == "__main__":
+    plano = PlanoCAD("PLANO-01", "1:50")
+    triangulo = Triangulo(lados=[Lado(3), Lado(4), Lado(5)])
+
+    # isinstance funciona por duck typing estructural (gracias a @runtime_checkable),
+    # aunque PlanoCAD no conoce ni hereda de Exportable.
+    print(f"¿PlanoCAD cumple Exportable? -> {isinstance(plano, Exportable)}")
+    print(f"¿Triangulo cumple Exportable? -> {isinstance(triangulo, Exportable)}")
+
+    resultados = exportar_todo([triangulo, plano])
+    for linea in resultados:
+        print(linea)
